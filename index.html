@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Tryhard - El Juego</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0e14;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffcc;
+            font-size: 24px;
+        }
+        #gameCanvas {
+            border: 4px solid #00ffcc;
+            background-color: #121824;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .instructions {
+            margin-top: 15px;
+            color: #8a99ad;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👻 FLAPPY TRYHARD 💻</h1>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <div class="instructions">Pulsa ESPACIO o haz CLIC para volar. ¡Esquiva los pantallazos azules!</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // FÍSICAS FLOTANTES
+        let birdY = 200;
+        let birdVelocity = 0;
+        const gravity = 0.12;  
+        const jump = -3.5;     
+        let score = 0;
+        let highScore = 0;
+        let gameOver = false;
+        let gameStarted = false;
+
+        // Obstáculos
+        let pipes = [];
+        const pipeWidth = 60;
+        const pipeGap = 160;   
+        const pipeSpeed = 1.3; 
+
+        function resetGame() {
+            birdY = 200;
+            birdVelocity = 0;
+            pipes = [
+                { x: canvas.width + 150, top: 150, bottom: canvas.height - 150 - pipeGap }
+            ];
+            score = 0;
+            gameOver = false;
+        }
+
+        // Control del salto
+        function playerJump() {
+            if (!gameStarted) {
+                gameStarted = true;
+                resetGame();
+            } else if (gameOver) {
+                resetGame();
+            } else {
+                birdVelocity = jump; 
+            }
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                e.preventDefault();
+                playerJump();
+            }
+        });
+        canvas.addEventListener("click", playerJump);
+
+        // Sistema de vaciles tuneado
+        function getGameOverMessage(finalScore) {
+            if (finalScore < 10) {
+                return "¿Qué malillo eres eh? ¡A entrenar!";
+            } else if (finalScore < 20) {
+                return "Algo has mejorado... pero meh.";
+            } else if (finalScore < 30) {
+                return "Bueno, bueno... me vas callando.";
+            } else {
+                return "Dios, vas mejorando pero te falta melón...";
+            }
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameStarted) {
+                ctx.fillStyle = "#00ffcc";
+                ctx.font = "bold 20px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("PULSA PARA EMPEZAR", canvas.width / 2, canvas.height / 2);
+                requestAnimationFrame(update);
+                return;
+            }
+
+            if (!gameOver) {
+                birdVelocity += gravity;
+                birdY += birdVelocity;
+
+                if (pipes[pipes.length - 1].x < canvas.width - 240) {
+                    let topHeight = Math.random() * (canvas.height - pipeGap - 140) + 70;
+                    pipes.push({
+                        x: canvas.width,
+                        top: topHeight,
+                        bottom: canvas.height - topHeight - pipeGap
+                    });
+                }
+
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    pipes[i].x -= pipeSpeed;
+
+                    if (pipes[i].x + pipeWidth < canvas.width / 2 - 15 && !pipes[i].passed) {
+                        score++;
+                        pipes[i].passed = true;
+                        if (score > highScore) highScore = score;
+                    }
+
+                    if (
+                        canvas.width / 2 + 15 > pipes[i].x &&
+                        canvas.width / 2 - 15 < pipes[i].x + pipeWidth &&
+                        (birdY - 15 < pipes[i].top || birdY + 15 > canvas.height - pipes[i].bottom)
+                    ) {
+                        gameOver = true;
+                    }
+
+                    if (pipes[i].x + pipeWidth < 0) {
+                        pipes.splice(i, 1);
+                    }
+                }
+
+                if (birdY + 15 > canvas.height || birdY - 15 < 0) {
+                    gameOver = true;
+                }
+            }
+
+            // DIBUJAR ELEMENTOS
+            pipes.forEach(pipe => {
+                ctx.fillStyle = "#0055ff"; 
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
+                
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px monospace";
+                ctx.fillText("💻", pipe.x + 20, pipe.top - 15);
+                ctx.fillText("💻", pipe.x + 20, canvas.height - pipe.bottom + 25);
+            });
+
+            ctx.font = "30px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("👻", canvas.width / 2, birdY);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 24px sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(`Puntos: ${score}`, 20, 40);
+            ctx.fillStyle = "#8a99ad";
+            ctx.font = "16px sans-serif";
+            ctx.fillText(`Récord: ${highScore}`, 20, 65);
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = "#ff3366";
+                ctx.font = "bold 18px sans-serif"; 
+                ctx.textAlign = "center";
+                ctx.fillText(getGameOverMessage(score), canvas.width / 2, canvas.height / 2 - 20);
+                
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "15px sans-serif";
+                ctx.fillText("Pulsa para reintentar", canvas.width / 2, canvas.height / 2 + 20);
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        resetGame();
+        update();
+    </script>
+</body>
+</html>
