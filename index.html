@@ -54,22 +54,19 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // FÍSICAS CORREGIDAS (Menos flotantes)
         let birdY = 200;
         let birdVelocity = 0;
-        const gravity = 0.6;   // Subida (antes 0.4) para que caiga más rápido
-        const jump = -6.5;     // Bajada (antes -8.5) para que suba menos
+        const gravity = 0.6;   
+        const jump = -6.5;     
         let score = 0;
         let highScore = 0;
         let gameOver = false;
         let gameStarted = false;
 
-        // Obstáculos
         let pipes = [];
         const pipeWidth = 60;
         const pipeGap = 160;   
         
-        // Control de tiempo para fluidez
         let lastTime = performance.now();
 
         function resetGame() {
@@ -91,7 +88,7 @@
             } else if (gameOver) {
                 resetGame();
             } else {
-                birdVelocity = jump; // Físicas secas
+                birdVelocity = jump; 
             }
         }
 
@@ -116,12 +113,11 @@
             }
         }
 
-        // Calcula la velocidad según la puntuación
         function getPipeSpeed(currentScore) {
-            if (currentScore < 10) return 3.5;               // Nivel 1: Lento para aprender
-            if (currentScore < 20) return 4.5;               // Nivel 2: Un poco más rápido
-            if (currentScore < 30) return 5.5;               // Nivel 3: Empieza lo serio
-            return 6.5 + Math.floor((currentScore - 30) / 10) * 0.5; // Nivel 4+: Aceleración infinita cada 10 puntos
+            if (currentScore < 10) return 3.5;               
+            if (currentScore < 20) return 4.5;               
+            if (currentScore < 30) return 5.5;               
+            return 6.5 + Math.floor((currentScore - 30) / 10) * 0.5; 
         }
 
         function update(currentTime) {
@@ -140,16 +136,11 @@
                 return;
             }
 
-            // Obtener la velocidad actual basada en los puntos
             const currentSpeed = getPipeSpeed(score);
 
             if (!gameOver) {
-                // Aplicar físicas más pesadas
                 birdVelocity += gravity * dt;
-                
-                // Límite de velocidad de caída para mayor control
                 if (birdVelocity > 10) birdVelocity = 10; 
-                
                 birdY += birdVelocity * dt;
 
                 if (pipes[pipes.length - 1].x < canvas.width - 240) {
@@ -188,7 +179,6 @@
                 }
             }
 
-            // DIBUJAR ELEMENTOS
             pipes.forEach(pipe => {
                 ctx.fillStyle = "#0055ff"; 
                 ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
