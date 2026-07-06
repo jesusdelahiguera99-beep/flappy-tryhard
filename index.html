@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,170 +9,204 @@
         body { margin: 0; background-color: #0b0b16; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: white; overflow: hidden; touch-action: manipulation; }
         h1 { margin-bottom: 10px; font-size: 24px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
         canvas { border: 4px solid #ffffff; box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); background-color: #000; }
-        .ui-panel { position: absolute; text-align: center; background: rgba(0, 0, 0, 0.9); padding: 30px; border: 2px solid #0ff; border-radius: 15px; display: none; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-        button { background: #0ff; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 18px; margin-top: 15px; color: black; font-family: 'Courier New', monospace; display: block; width: 100%; }
-        .btn-menu { background: #555; color: white; margin-top: 10px; }
-        .sound-toggle { font-size: 12px; margin-top: 15px; cursor: pointer; color: #0ff; }
+        .ui-panel { position: absolute; text-align: center; background: rgba(0, 0, 0, 0.9); padding: 30px; border: 2px solid #0ff; border-radius: 15px; display: none; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); width: 280px; }
+        button { background: #0ff; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 18px; margin-top: 15px; color: black; font-family: 'Courier New', monospace; width: 100%; }
+        .slider-group { margin: 20px 0; font-size: 14px; text-align: left; color: #0ff; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        #loadingScreen { display: flex; z-index: 100; border: 2px solid #0ff; align-items: center; justify-content: center; position: absolute; }
     </style>
 </head>
 <body>
-    <h1>UFO GLOW 🎮</h1>
-    <canvas id="gameCanvas" width="400" height="550"></canvas>
-    
-    <div id="mainMenu" class="ui-panel" style="display: block;">
-        <h1 style="color: #0ff; margin-bottom: 5px;">UFO GLOW</h1>
-        <button ontouchstart="startGame()" onclick="startGame()">JUGAR AHORA</button>
-        <div class="sound-toggle" onclick="toggleAudio('music')">MÚSICA: <span id="mMusic">ON</span></div>
-        <div class="sound-toggle" onclick="toggleAudio('sfx')">EFECTOS: <span id="mSfx">ON</span></div>
-    </div>
 
-    <div id="gameOverMenu" class="ui-panel">
-        <h1 style="color: #f0f; margin-bottom: 5px;">RESTART</h1>
-        <p id="finalScore" style="font-size: 20px; margin: 10px 0;"></p>
-        <button ontouchstart="startGame()" onclick="startGame()">VOLAR DE NUEVO</button>
-        <button class="btn-menu" ontouchstart="goToMenu()" onclick="goToMenu()">MENÚ PRINCIPAL</button>
-    </div>
+<div id="loadingScreen" class="ui-panel" style="display: flex;">
+    <h1 style="color: #0ff;">CARGANDO...</h1>
+</div>
 
-    <script>
-        // --- MOTOR DE AUDIO INSTANTÁNEO (Base64) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let jumpBuffer = null;
-        let audioSettings = { music: true, sfx: true };
-        const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-        bgMusic.loop = true; bgMusic.volume = 0.2;
+<h1>UFO GLOW 🎮</h1>
+<canvas id="gameCanvas" width="400" height="550"></canvas>
 
-        // Sonido POP codificado en Base64 para que sea local y 0ms de carga
-        const popData = "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="; 
-        async function initAudio() {
-            const byteCharacters = atob("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
-            const bytes = new Uint8Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) bytes[i] = byteCharacters.charCodeAt(i);
-            jumpBuffer = await audioCtx.decodeAudioData(bytes.buffer);
+<div id="mainMenu" class="ui-panel">
+    <h1 style="color: #0ff; margin-bottom: 5px;">UFO GLOW</h1>
+    <button onclick="startGame()">JUGAR AHORA</button>
+    <button onclick="showSettings()" style="background: #444; color: white;">AJUSTES</button>
+</div>
+
+<div id="settingsMenu" class="ui-panel">
+    <h1 style="color: #0ff; margin-bottom: 5px;">AJUSTES</h1>
+    <div class="slider-group">MÚSICA <input type="range" id="volMusic" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
+    <div class="slider-group">EFECTOS <input type="range" id="volSfx" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
+    <p style="font-size: 12px; opacity: 0.7; margin: 10px 0;">Creador por: Cardeti</p>
+    <button onclick="hideSettings()">VOLVER</button>
+</div>
+
+<div id="gameOverMenu" class="ui-panel">
+    <h1 style="color: #f0f; margin-bottom: 5px;">RESTART</h1>
+    <p id="finalScore" style="font-size: 20px; margin: 10px 0;"></p>
+    <button onclick="startGame()">VOLAR DE NUEVO</button>
+    <button onclick="showMenu()" style="background: #444; color: white;">MENÚ PRINCIPAL</button>
+</div>
+
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let jumpBuffer = null;
+    const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+    bgMusic.loop = true;
+
+    async function initGame() {
+        try {
+            const response = await fetch("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+            const arrayBuffer = await response.arrayBuffer();
+            jumpBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch(e) {}
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('mainMenu').style.display = 'block';
+    }
+
+    bgMusic.volume = localStorage.getItem('volMusic') || 0.2;
+    document.getElementById('volMusic').value = bgMusic.volume;
+    document.getElementById('volSfx').value = localStorage.getItem('volSfx') || 0.2;
+
+    function updateVolumes() {
+        bgMusic.volume = document.getElementById('volMusic').value;
+        localStorage.setItem('volMusic', bgMusic.volume);
+        localStorage.setItem('volSfx', document.getElementById('volSfx').value);
+    }
+
+    function playJumpSound() {
+        if (!jumpBuffer) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const source = audioCtx.createBufferSource();
+        source.buffer = jumpBuffer;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = document.getElementById('volSfx').value;
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        source.start(0);
+    }
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const mainMenu = document.getElementById("mainMenu");
+    const settingsMenu = document.getElementById("settingsMenu");
+    const gameOverMenu = document.getElementById("gameOverMenu");
+    const finalScoreText = document.getElementById("finalScore");
+
+    let gameState = "MENU", birdY = 250, birdVelocity = 0, score = 0, scoreScale = 1;
+    let highScore = parseInt(localStorage.getItem('ufoGlowHighScore')) || 0;
+    const gravity = 1500, jump = -400, birdX = 60, birdRadius = 14; 
+    let pipes = [], stars = [], particles = [];
+    const pipeWidth = 65;
+
+    function getPipeGap() { return score < 30 ? 160 : score < 40 ? 185 : score < 50 ? 200 : 215; }
+    function showSettings() { mainMenu.style.display = "none"; settingsMenu.style.display = "block"; }
+    function hideSettings() { settingsMenu.style.display = "none"; mainMenu.style.display = "block"; }
+    function showMenu() { gameOverMenu.style.display = "none"; mainMenu.style.display = "block"; gameState = "MENU"; }
+
+    function initStars() {
+        stars = [];
+        for (let i = 0; i < 40; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 + 0.5, speedMultiplier: Math.random() * 0.4 + 0.1 });
+    }
+
+    function createParticle() {
+        if (gameState !== "PLAYING") return;
+        particles.push({ x: birdX - 10, y: birdY + 3 + (Math.random() * 6 - 3), vx: -(Math.random() * 80 + 40), vy: Math.random() * 40 - 20, alpha: 1, size: Math.random() * 3 + 1 });
+    }
+
+    function startGame() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        bgMusic.play().catch(()=>{});
+        mainMenu.style.display = "none"; settingsMenu.style.display = "none"; gameOverMenu.style.display = "none";
+        birdY = 250; birdVelocity = 0; score = 0; particles = []; initStars();
+        pipes = [{ x: canvas.width + 50, top: 150, bottom: canvas.height - 150 - getPipeGap(), passed: false }];
+        gameState = "PLAYING";
+    }
+
+    function endGame() {
+        gameState = "GAMEOVER";
+        if (score > highScore) { highScore = score; localStorage.setItem('ufoGlowHighScore', highScore); }
+        finalScoreText.innerText = `SCORE: ${score} | BEST: ${highScore}`;
+        gameOverMenu.style.display = "block";
+    }
+
+    function playerJump(e) {
+        if (e) e.preventDefault();
+        if (gameState === "PLAYING") { birdVelocity = jump; for(let i=0; i<5; i++) createParticle(); playJumpSound(); }
+    }
+
+    window.addEventListener("keydown", (e) => { if (e.code === "Space") playerJump(e); });
+    canvas.addEventListener("touchstart", (e) => { playerJump(e); }, { passive: false });
+
+    function getGameSpeed() {        
+        let speed = score < 10 ? 180 : score < 20 ? 220 : score < 30 ? 260 : 180 + 120 + (Math.floor((score - 30) / 10) * 20);
+        return Math.min(speed, 320);
+    }
+
+    function getNeonColor(score, offset = 0) { return `hsl(${(score * 12 + offset) % 360}, 100%, 65%)`; }
+
+    function update(dt) {
+        let currentSpeed = getGameSpeed();
+        stars.forEach(star => { star.x -= currentSpeed * star.speedMultiplier * dt; if (star.x < 0) { star.x = canvas.width; star.y = Math.random() * canvas.height; } });
+        if (gameState !== "PLAYING") return;
+        birdVelocity += gravity * dt; birdY += birdVelocity * dt;
+        if (birdY + birdRadius > canvas.height || birdY - birdRadius < 0) endGame();
+        if (Math.random() < 0.4) createParticle();
+        for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 1.5 * dt; if (p.alpha <= 0) particles.splice(i, 1); }
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            let pipe = pipes[i]; pipe.x -= currentSpeed * dt;
+            if (!pipe.passed && pipe.x + pipeWidth < birdX) { score++; pipe.passed = true; scoreScale = 1.6; }
+            if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth && (birdY - birdRadius < pipe.top || birdY + birdRadius > canvas.height - pipe.bottom)) endGame();
+            if (pipe.x + pipeWidth < 0) pipes.splice(i, 1);
         }
-        initAudio();
-
-        function playJumpSound() {
-            if (!audioSettings.sfx || !jumpBuffer) return;
-            const source = audioCtx.createBufferSource();
-            source.buffer = jumpBuffer;
-            source.connect(audioCtx.destination);
-            source.start(0);
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+            let gap = getPipeGap();
+            let topHeight = Math.floor(Math.random() * (canvas.height - gap - 120)) + 60;
+            pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - gap, passed: false });
         }
+    }
 
-        function toggleAudio(type) {
-            audioSettings[type] = !audioSettings[type];
-            document.getElementById(type === 'music' ? 'mMusic' : 'mSfx').innerText = audioSettings[type] ? "ON" : "OFF";
-            if (type === 'music') audioSettings.music ? bgMusic.play().catch(()=>{}) : bgMusic.pause();
-        }
-
-        // --- LÓGICA DE JUEGO ---
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const mainMenu = document.getElementById("mainMenu");
-        const gameOverMenu = document.getElementById("gameOverMenu");
-        const finalScoreText = document.getElementById("finalScore");
-
-        let gameState = "MENU", birdY = 250, birdVelocity = 0, score = 0, highScore = 0;
-        const gravity = 1500, jump = -400, birdX = 60, birdRadius = 14; 
-        let pipes = [], stars = [], particles = [];
-        const pipeWidth = 65, pipeGap = 160, baseSpeed = 180;
-
-        function goToMenu() { gameOverMenu.style.display = "none"; mainMenu.style.display = "block"; gameState = "MENU"; }
-        function initStars() { stars = []; for (let i = 0; i < 40; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 + 0.5, speedMultiplier: Math.random() * 0.4 + 0.1 }); }
-        function createParticle() { if (gameState !== "PLAYING") return; particles.push({ x: birdX - 10, y: birdY + 3 + (Math.random() * 6 - 3), vx: -(Math.random() * 80 + 40), vy: Math.random() * 40 - 20, alpha: 1, size: Math.random() * 3 + 1 }); }
+    function draw() {
+        const currentHue = (score * 7) % 360;
+        let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bgGradient.addColorStop(0, `hsl(${(currentHue + 180) % 360}, 45%, 5%)`);
+        bgGradient.addColorStop(1, `hsl(${currentHue}, 35%, 10%)`);
+        ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, 400, 550);
+        stars.forEach(star => { ctx.fillStyle = "#fff"; ctx.globalAlpha = star.speedMultiplier * 2; ctx.fillRect(star.x, star.y, star.size, star.size); });
+        ctx.globalAlpha = 1.0; 
+        particles.forEach(p => { ctx.fillStyle = getNeonColor(score, 140); ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
         
-        let lastTime = performance.now();
-        function startGame() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (audioSettings.music) bgMusic.play().catch(()=>{});
-            mainMenu.style.display = "none";
-            gameOverMenu.style.display = "none";
-            birdY = 250; birdVelocity = 0;
-            pipes = [{ x: canvas.width + 50, top: 150, bottom: canvas.height - 150 - pipeGap, passed: false }];
-            score = 0; particles = []; initStars(); gameState = "PLAYING";
-        }
-
-        function endGame() {
-            gameState = "GAMEOVER";
-            finalScoreText.innerText = `SCORE: ${score} | BEST: ${highScore}`;
-            gameOverMenu.style.display = "block";
-        }
-
-        function playerJump(e) {
-            if (e) e.preventDefault();
-            if (gameState === "MENU" || gameState === "GAMEOVER") startGame();
-            else if (gameState === "PLAYING") {
-                birdVelocity = jump; 
-                for(let i=0; i<5; i++) createParticle();
-                playJumpSound();
-            }
-        }
-
-        window.addEventListener("keydown", (e) => { if (e.code === "Space") playerJump(e); });
-        canvas.addEventListener("touchstart", (e) => { playerJump(e); }, { passive: false });
-
-        function getGameSpeed() { if (score < 10) return baseSpeed; if (score < 20) return baseSpeed + 40; if (score < 30) return baseSpeed + 80; return baseSpeed + 120 + (Math.floor((score - 30) / 10) * 20); }
-        function getNeonColor(score, offset = 0) { return `hsl(${(score * 12 + offset) % 360}, 100%, 65%)`; }
-
-        function update(dt) {
-            let currentSpeed = getGameSpeed();
-            stars.forEach(star => { star.x -= currentSpeed * star.speedMultiplier * dt; if (star.x < 0) { star.x = canvas.width; star.y = Math.random() * canvas.height; } });
-            if (gameState !== "PLAYING") return;
-            birdVelocity += gravity * dt; birdY += birdVelocity * dt;
-            if (birdY + birdRadius > canvas.height || birdY - birdRadius < 0) endGame();
-            if (Math.random() < 0.4) createParticle();
-            for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 1.5 * dt; if (p.alpha <= 0) particles.splice(i, 1); }
-            for (let i = pipes.length - 1; i >= 0; i--) {
-                let pipe = pipes[i]; pipe.x -= currentSpeed * dt;
-                if (!pipe.passed && pipe.x + pipeWidth < birdX) { score++; pipe.passed = true; if (score > highScore) highScore = score; }
-                if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth && (birdY - birdRadius < pipe.top || birdY + birdRadius > canvas.height - pipe.bottom)) endGame();
-                if (pipe.x + pipeWidth < 0) pipes.splice(i, 1);
-            }
-            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) { let topHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 120)) + 60; pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - pipeGap, passed: false }); }
-        }
-
-        function draw() {
-            const currentHue = (score * 7) % 360;
-            let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            bgGradient.addColorStop(0, `hsl(${(currentHue + 180) % 360}, 45%, 5%)`);
-            bgGradient.addColorStop(1, `hsl(${currentHue}, 35%, 10%)`);
-            ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, 400, 550);
-            ctx.fillStyle = "#ffffff";
-            stars.forEach(star => { ctx.globalAlpha = star.speedMultiplier * 2; ctx.fillRect(star.x, star.y, star.size, star.size); });
-            ctx.globalAlpha = 1.0; 
-            particles.forEach(p => { ctx.fillStyle = getNeonColor(score, 140); ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
-            ctx.globalAlpha = 1.0;
-            pipes.forEach(pipe => {
-                const pipeColor = getNeonColor(score, 0); const coreColor = `hsl(${(score * 12) % 360}, 100%, 95%)`;
-                ctx.lineWidth = 3; ctx.shadowBlur = 12; ctx.shadowColor = pipeColor;
-                let pipeGrad = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipeWidth, 0);
-                pipeGrad.addColorStop(0, pipeColor); pipeGrad.addColorStop(0.5, coreColor); pipeGrad.addColorStop(1, pipeColor);
-                ctx.fillStyle = pipeGrad;
-                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top); ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.top);
-                ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom); ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
-                ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
-                for(let y = 20; y < pipe.top; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
-                for(let y = canvas.height - pipe.bottom + 20; y < canvas.height; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
-                ctx.shadowBlur = 0;
-            });
-            const ufoColor = getNeonColor(score, 140);
-            ctx.shadowBlur = 15; ctx.shadowColor = ufoColor;
-            ctx.fillStyle = "rgba(180, 255, 255, 0.85)"; ctx.beginPath(); ctx.arc(birdX, birdY - 2, 9, Math.PI, 0); ctx.fill();
-            ctx.fillStyle = ufoColor; ctx.beginPath(); ctx.ellipse(birdX, birdY + 3, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = (Math.floor(performance.now() / 150) % 2 === 0) ? "#ffffff" : "#ff00ff";
-            ctx.beginPath(); ctx.arc(birdX - 10, birdY + 3, 2, 0, Math.PI * 2); ctx.arc(birdX, birdY + 5, 2, 0, Math.PI * 2); ctx.arc(birdX + 10, birdY + 3, 2, 0, Math.PI * 2); ctx.fill();
+        pipes.forEach(pipe => {
+            const pipeColor = getNeonColor(score, 0); const coreColor = `hsl(${(score * 12) % 360}, 100%, 95%)`;
+            ctx.lineWidth = 3; ctx.shadowBlur = 12; ctx.shadowColor = pipeColor;
+            let pipeGrad = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipeWidth, 0);
+            pipeGrad.addColorStop(0, pipeColor); pipeGrad.addColorStop(0.5, coreColor); pipeGrad.addColorStop(1, pipeColor);
+            ctx.fillStyle = pipeGrad;
+            ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top); ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.top);
+            ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom); ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
+            ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
+            for(let y = 20; y < pipe.top; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
+            for(let y = canvas.height - pipe.bottom + 20; y < canvas.height; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
             ctx.shadowBlur = 0;
-            if (gameState === "PLAYING") {
-                ctx.fillStyle = "#ffffff"; ctx.font = "bold 20px 'Courier New', monospace"; ctx.textAlign = "center";
-                ctx.fillText(`SCORE: ${score}  |  BEST: ${highScore}`, canvas.width / 2, 40);
-            }
+        });
+
+        const ufoColor = getNeonColor(score, 140);
+        ctx.shadowBlur = 15; ctx.shadowColor = ufoColor;
+        ctx.fillStyle = "rgba(180, 255, 255, 0.85)"; ctx.beginPath(); ctx.arc(birdX, birdY - 2, 9, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = ufoColor; ctx.beginPath(); ctx.ellipse(birdX, birdY + 3, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = (Math.floor(performance.now() / 150) % 2 === 0) ? "#ffffff" : "#ff00ff";
+        ctx.beginPath(); ctx.arc(birdX - 10, birdY + 3, 2, 0, Math.PI * 2); ctx.arc(birdX, birdY + 5, 2, 0, Math.PI * 2); ctx.arc(birdX + 10, birdY + 3, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        if (gameState === "PLAYING") {
+            if (scoreScale > 1) scoreScale -= 0.05;
+            ctx.fillStyle = "#ffffff"; ctx.font = `bold ${20 * scoreScale}px 'Courier New', monospace`; ctx.textAlign = "center";
+            ctx.fillText(`SCORE: ${score}`, canvas.width / 2, 40);
         }
-        function gameLoop(currentTime) {
-            let dt = (currentTime - lastTime) / 1000;
-            if (dt > 0.1) dt = 0.1; lastTime = currentTime;
-            update(dt); draw(); requestAnimationFrame(gameLoop);
-        }
-        initStars(); requestAnimationFrame(gameLoop);
-    </script>
+    }
+    
+    let lastTime = performance.now();
+    function gameLoop(currentTime) { let dt = (currentTime - lastTime) / 1000; if (dt > 0.1) dt = 0.1; lastTime = currentTime; update(dt); draw(); requestAnimationFrame(gameLoop); }
+    initStars(); requestAnimationFrame(gameLoop);
+    initGame();
+</script>
 </body>
 </html>  
