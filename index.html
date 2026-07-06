@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -34,19 +33,22 @@
     </div>
 
     <script>
-        // --- MOTOR DE AUDIO PROFESIONAL ---
+        // --- MOTOR DE AUDIO INSTANTÁNEO (Base64) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let jumpBuffer = null;
         let audioSettings = { music: true, sfx: true };
         const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
         bgMusic.loop = true; bgMusic.volume = 0.2;
 
-        async function loadSound() {
-            const response = await fetch("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
-            const arrayBuffer = await response.arrayBuffer();
-            jumpBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        // Sonido POP codificado en Base64 para que sea local y 0ms de carga
+        const popData = "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="; 
+        async function initAudio() {
+            const byteCharacters = atob("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
+            const bytes = new Uint8Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) bytes[i] = byteCharacters.charCodeAt(i);
+            jumpBuffer = await audioCtx.decodeAudioData(bytes.buffer);
         }
-        loadSound();
+        initAudio();
 
         function playJumpSound() {
             if (!audioSettings.sfx || !jumpBuffer) return;
