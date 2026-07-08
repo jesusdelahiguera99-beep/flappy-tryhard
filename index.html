@@ -6,13 +6,54 @@
     <title>UFO GLOW</title>
     <style>
         body { margin: 0; background-color: #0b0b16; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: white; overflow: hidden; touch-action: manipulation; }
-        h1 { margin-bottom: 10px; font-size: 24px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
         canvas { border: 4px solid #ffffff; box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); background-color: #000; }
-        .ui-panel { position: absolute; text-align: center; background: rgba(0, 0, 0, 0.9); padding: 30px; border: 2px solid #0ff; border-radius: 15px; display: none; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); width: 280px; }
-        button { background: #0ff; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 18px; margin-top: 15px; color: black; font-family: 'Courier New', monospace; width: 100%; }
+        
+        /* Paneles UI con estilo Cyberpunk/Glassmorphism mejorado */
+        .ui-panel { position: absolute; text-align: center; background: rgba(10, 10, 25, 0.94); padding: 30px; border: 2px solid #0ff; border-radius: 15px; display: none; box-shadow: 0 0 25px rgba(0, 255, 255, 0.25); width: 280px; z-index: 10; backdrop-filter: blur(4px); }
+        .reward-panel { border-color: #ff0; box-shadow: 0 0 35px rgba(255, 255, 0, 0.35); z-index: 50; }
+        
+        /* Animación de pulso neón para el título */
+        @keyframes neonGlow {
+            0% { text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; transform: scale(1); }
+            100% { text-shadow: 0 0 20px #0ff, 0 0 35px #0ff, 0 0 50px #0ff; transform: scale(1.02); }
+        }
+        .main-title { color: #0ff; margin-bottom: 0; animation: neonGlow 1.5s ease-in-out infinite alternate; font-size: 32px; letter-spacing: 2px; }
+        
+        /* Botones mucho más visuales e interactivos */
+        button { 
+            background: linear-gradient(135deg, #0ff 0%, #00bcbc 100%); 
+            border: 1px solid #fff; 
+            padding: 15px 30px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            margin-top: 15px; 
+            color: black; 
+            font-family: 'Courier New', monospace; 
+            width: 100%; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 255, 255, 0.3);
+        }
+        button:hover { 
+            transform: translateY(-3px) scale(1.02); 
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.7);
+            background: linear-gradient(135deg, #26ffff 0%, #00d9d9 100%);
+        }
+        button:active { transform: translateY(1px) scale(0.98); }
+
+        /* Estilo para el botón de pausa */
+        #pauseBtn {
+            position: absolute; top: 15px; right: 15px; width: 45px; height: 45px;
+            padding: 0; margin-top: 0; font-size: 16px; border-radius: 50%;
+            z-index: 30; display: none;
+        }
+        
         .slider-group { margin: 20px 0; font-size: 14px; text-align: left; color: #0ff; }
         input[type=range] { width: 100%; cursor: pointer; }
-        #loadingScreen { display: flex; z-index: 100; border: 2px solid #0ff; align-items: center; justify-content: center; position: absolute; }
+        
+        #loadingScreen { display: flex; z-index: 100; align-items: center; justify-content: center; }
+        .stats-list p { margin: 12px 0; font-size: 16px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -23,32 +64,70 @@
 
 <canvas id="gameCanvas" width="400" height="550"></canvas>
 
+<button id="pauseBtn" onclick="togglePause()">||</button>
+
 <div id="mainMenu" class="ui-panel">
-    <h1 style="color: #0ff; margin-bottom: 5px;">UFO GLOW</h1>
+    <h1 class="main-title">UFO GLOW</h1>
     <button onclick="startGame()">JUGAR AHORA</button>
-    <button onclick="showSettings()" style="background: #444; color: white;">AJUSTES</button>
+    <button onclick="showStats()" style="background: linear-gradient(135deg, #b026ff 0%, #7c00c7 100%); color: white; box-shadow: 0 4px 10px rgba(176, 38, 255, 0.3);">ESTADÍSTICAS</button>
+    <button onclick="showSettings()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">AJUSTES</button>
 </div>
 
 <div id="settingsMenu" class="ui-panel">
     <h1 style="color: #0ff; margin-bottom: 5px;">AJUSTES</h1>
     <div class="slider-group">MÚSICA <input type="range" id="volMusic" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
     <div class="slider-group">EFECTOS <input type="range" id="volSfx" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
-    <p style="font-size: 12px; opacity: 0.7; margin: 10px 0;">Creador por: Cardeti</p>
     <button onclick="hideSettings()">VOLVER</button>
+</div>
+
+<div id="statsMenu" class="ui-panel">
+    <h1 style="color: #a200ff; margin-bottom: 15px; text-shadow: 0 0 10px #a200ff;">ESTADÍSTICAS</h1>
+    <div class="stats-list" style="text-align: left;">
+        <p style="color: #0ff;">🏆 Récord: <span id="statRecord">0</span></p>
+        <p style="color: #0f0;">🎮 Partidas: <span id="statGames">0</span></p>
+        <p style="color: #f90;">🔥 Racha: <span id="statStreak">0</span> días</p>
+    </div>
+    <button onclick="hideStats()" style="background: linear-gradient(135deg, #b026ff 0%, #7c00c7 100%); color: white;">VOLVER</button>
+</div>
+
+<div id="rewardPopup" class="ui-panel reward-panel">
+    <h2 style="color: #ff0; margin-top: 0; text-shadow: 0 0 10px #ff0;">¡RECOMPENSA DIARIA!</h2>
+    <p id="rewardText" style="font-size: 18px; margin: 20px 0; font-weight: bold;"></p>
+    <button onclick="closeReward()" style="background: linear-gradient(135deg, #ff0 0%, #cca300 100%); color: black; box-shadow: 0 4px 10px rgba(255,255,0,0.4);">RECLAMAR</button>
+</div>
+
+<div id="pauseMenu" class="ui-panel">
+    <h1 style="color: #0ff; text-shadow: 0 0 10px #0ff;">PAUSADO</h1>
+    <button onclick="togglePause()">REANUDAR</button>
+    <button onclick="showMenu()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white;">SALIR AL MENÚ</button>
+</div>
+
+<div id="countdownScreen" class="ui-panel" style="background: transparent; border: none; box-shadow: none; pointer-events: none; z-index: 60;">
+    <h1 id="countdownText" style="color: #ff0; font-size: 100px; text-shadow: 0 0 30px #ff0; margin: 0;">3</h1>
 </div>
 
 <div id="gameOverMenu" class="ui-panel">
     <h1 style="color: #f0f; margin-bottom: 5px;">RESTART</h1>
     <p id="finalScore" style="font-size: 20px; margin: 10px 0;"></p>
     <button onclick="startGame()">VOLAR DE NUEVO</button>
-    <button onclick="showMenu()" style="background: #444; color: white;">MENÚ PRINCIPAL</button>
+    <button onclick="showMenu()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white;">MENÚ PRINCIPAL</button>
 </div>
 
 <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let jumpBuffer = null;
-    const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-    bgMusic.loop = true;
+    
+    const menuMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3");
+    const gameMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+    menuMusic.loop = true;
+    gameMusic.loop = true;
+
+    let gamesPlayed = parseInt(localStorage.getItem('ufoGlowGamesPlayed')) || 0;
+    let streak = parseInt(localStorage.getItem('ufoGlowStreak')) || 0;
+    let highScore = parseInt(localStorage.getItem('ufoGlowHighScore')) || 0;
+
+    let countdownValue = 3;
+    let countdownInterval;
 
     async function initGame() {
         try {
@@ -56,17 +135,89 @@
             const arrayBuffer = await response.arrayBuffer();
             jumpBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         } catch(e) {}
+        
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainMenu').style.display = 'block';
+        
+        updateUI();
+        checkDailyReward();
+        menuMusic.play().catch(()=>{});
     }
 
-    bgMusic.volume = localStorage.getItem('volMusic') || 0.2;
-    document.getElementById('volMusic').value = bgMusic.volume;
+    window.addEventListener('click', () => {
+        if (gameState === "MENU" && menuMusic.paused) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            menuMusic.play().catch(()=>{});
+        }
+    }, { once: true });
+
+    function playUIClick() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.05);
+        
+        let sfxVol = parseFloat(document.getElementById('volSfx').value);
+        gainNode.gain.setValueAtTime(sfxVol * 0.5, audioCtx.currentTime); 
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function checkDailyReward() {
+        let todayDate = new Date();
+        let todayStr = todayDate.toDateString();
+        let lastLoginStr = localStorage.getItem('ufoGlowLastLogin');
+        
+        if (lastLoginStr !== todayStr) {
+            let yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            
+            if (lastLoginStr === yesterdayDate.toDateString()) { streak++; } 
+            else { streak = 1; }
+            
+            localStorage.setItem('ufoGlowStreak', streak);
+            localStorage.setItem('ufoGlowLastLogin', todayStr);
+            
+            document.getElementById('rewardText').innerHTML = `¡Día ${streak} de racha!`;
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('rewardPopup').style.display = 'block';
+            
+            updateUI();
+        }
+    }
+
+    function closeReward() {
+        playUIClick();
+        document.getElementById('rewardPopup').style.display = 'none';
+        document.getElementById('mainMenu').style.display = 'block';
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        menuMusic.play().catch(()=>{});
+    }
+
+    function updateUI() {
+        document.getElementById('statRecord').innerText = highScore;
+        document.getElementById('statGames').innerText = gamesPlayed;
+        document.getElementById('statStreak').innerText = streak;
+    }
+
+    let savedVolume = localStorage.getItem('volMusic') !== null ? parseFloat(localStorage.getItem('volMusic')) : 0.2;
+    menuMusic.volume = savedVolume;
+    gameMusic.volume = savedVolume;
+    document.getElementById('volMusic').value = savedVolume;
     document.getElementById('volSfx').value = localStorage.getItem('volSfx') || 0.2;
 
     function updateVolumes() {
-        bgMusic.volume = document.getElementById('volMusic').value;
-        localStorage.setItem('volMusic', bgMusic.volume);
+        let vol = document.getElementById('volMusic').value;
+        menuMusic.volume = vol;
+        gameMusic.volume = vol;
+        localStorage.setItem('volMusic', vol);
         localStorage.setItem('volSfx', document.getElementById('volSfx').value);
     }
 
@@ -84,21 +235,69 @@
 
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    const mainMenu = document.getElementById("mainMenu");
-    const settingsMenu = document.getElementById("settingsMenu");
-    const gameOverMenu = document.getElementById("gameOverMenu");
-    const finalScoreText = document.getElementById("finalScore");
-
+    
     let gameState = "MENU", birdY = 250, birdVelocity = 0, score = 0, scoreScale = 1;
-    let highScore = parseInt(localStorage.getItem('ufoGlowHighScore')) || 0;
     const gravity = 1500, jump = -400, birdX = 60, birdRadius = 14; 
     let pipes = [], stars = [], particles = [];
     const pipeWidth = 65;
 
     function getPipeGap() { return score < 30 ? 160 : score < 40 ? 185 : score < 50 ? 200 : 215; }
-    function showSettings() { mainMenu.style.display = "none"; settingsMenu.style.display = "block"; }
-    function hideSettings() { settingsMenu.style.display = "none"; mainMenu.style.display = "block"; }
-    function showMenu() { gameOverMenu.style.display = "none"; mainMenu.style.display = "block"; gameState = "MENU"; }
+    
+    function showSettings() { playUIClick(); document.getElementById('mainMenu').style.display = "none"; document.getElementById('settingsMenu').style.display = "block"; }
+    function hideSettings() { playUIClick(); document.getElementById('settingsMenu').style.display = "none"; document.getElementById('mainMenu').style.display = "block"; }
+    
+    function showStats() { playUIClick(); document.getElementById('mainMenu').style.display = "none"; document.getElementById('statsMenu').style.display = "block"; }
+    function hideStats() { playUIClick(); document.getElementById('statsMenu').style.display = "none"; document.getElementById('mainMenu').style.display = "block"; }
+    
+    function showMenu() { 
+        playUIClick();
+        clearInterval(countdownInterval);
+        document.getElementById('countdownScreen').style.display = 'none';
+        
+        document.getElementById('gameOverMenu').style.display = "none"; 
+        document.getElementById('pauseMenu').style.display = "none";
+        document.getElementById('pauseBtn').style.display = "none";
+        document.getElementById('mainMenu').style.display = "block"; 
+        gameState = "MENU"; 
+        
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+        menuMusic.play().catch(()=>{});
+        
+        updateUI(); 
+    }
+
+    function startCountdown() {
+        gameState = "RESUMING"; 
+        countdownValue = 3;
+        document.getElementById('countdownText').innerText = countdownValue;
+        document.getElementById('countdownScreen').style.display = 'flex';
+        
+        countdownInterval = setInterval(() => {
+            countdownValue--;
+            if (countdownValue > 0) {
+                document.getElementById('countdownText').innerText = countdownValue;
+            } else {
+                clearInterval(countdownInterval);
+                document.getElementById('countdownScreen').style.display = 'none';
+                gameState = "PLAYING";
+                gameMusic.play().catch(()=>{});
+            }
+        }, 1000);
+    }
+
+    function togglePause() {
+        if (gameState !== "PLAYING" && gameState !== "PAUSED") return;
+        playUIClick();
+        if (gameState === "PLAYING") {
+            gameState = "PAUSED";
+            document.getElementById('pauseMenu').style.display = "block";
+            gameMusic.pause();
+        } else {
+            document.getElementById('pauseMenu').style.display = "none";
+            startCountdown();
+        }
+    }
 
     function initStars() {
         stars = [];
@@ -111,9 +310,19 @@
     }
 
     function startGame() {
+        playUIClick();
+        clearInterval(countdownInterval);
+        document.getElementById('countdownScreen').style.display = 'none';
+        
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        bgMusic.play().catch(()=>{});
-        mainMenu.style.display = "none"; settingsMenu.style.display = "none"; gameOverMenu.style.display = "none";
+        
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
+        gameMusic.play().catch(()=>{});
+        
+        document.querySelectorAll('.ui-panel').forEach(panel => panel.style.display = 'none');
+        document.getElementById('pauseBtn').style.display = 'block';
+        
         birdY = 250; birdVelocity = 0; score = 0; particles = []; initStars();
         pipes = [{ x: canvas.width + 50, top: 150, bottom: canvas.height - 150 - getPipeGap(), passed: false }];
         gameState = "PLAYING";
@@ -121,9 +330,18 @@
 
     function endGame() {
         gameState = "GAMEOVER";
-        if (score > highScore) { highScore = score; localStorage.setItem('ufoGlowHighScore', highScore); }
-        finalScoreText.innerText = `SCORE: ${score} | BEST: ${highScore}`;
-        gameOverMenu.style.display = "block";
+        gamesPlayed++;
+        localStorage.setItem('ufoGlowGamesPlayed', gamesPlayed);
+        document.getElementById('pauseBtn').style.display = 'none';
+        
+        if (score > highScore) { 
+            highScore = score; 
+            localStorage.setItem('ufoGlowHighScore', highScore); 
+        }
+        
+        document.getElementById('finalScore').innerText = `SCORE: ${score} | BEST: ${highScore}`;
+        document.getElementById('gameOverMenu').style.display = "block";
+        updateUI();
     }
 
     function playerJump(e) {
@@ -131,7 +349,10 @@
         if (gameState === "PLAYING") { birdVelocity = jump; for(let i=0; i<5; i++) createParticle(); playJumpSound(); }
     }
 
-    window.addEventListener("keydown", (e) => { if (e.code === "Space") playerJump(e); });
+    window.addEventListener("keydown", (e) => { 
+        if (e.code === "Space") playerJump(e); 
+        if (e.code === "KeyP" || e.code === "Escape") togglePause();
+    });
     canvas.addEventListener("touchstart", (e) => { playerJump(e); }, { passive: false });
 
     function getGameSpeed() {        
@@ -144,17 +365,22 @@
     function update(dt) {
         let currentSpeed = getGameSpeed();
         stars.forEach(star => { star.x -= currentSpeed * star.speedMultiplier * dt; if (star.x < 0) { star.x = canvas.width; star.y = Math.random() * canvas.height; } });
+        
         if (gameState !== "PLAYING") return;
+        
         birdVelocity += gravity * dt; birdY += birdVelocity * dt;
         if (birdY + birdRadius > canvas.height || birdY - birdRadius < 0) endGame();
         if (Math.random() < 0.4) createParticle();
+        
         for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 1.5 * dt; if (p.alpha <= 0) particles.splice(i, 1); }
+        
         for (let i = pipes.length - 1; i >= 0; i--) {
             let pipe = pipes[i]; pipe.x -= currentSpeed * dt;
             if (!pipe.passed && pipe.x + pipeWidth < birdX) { score++; pipe.passed = true; scoreScale = 1.6; }
             if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth && (birdY - birdRadius < pipe.top || birdY + birdRadius > canvas.height - pipe.bottom)) endGame();
             if (pipe.x + pipeWidth < 0) pipes.splice(i, 1);
         }
+        
         if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
             let gap = getPipeGap();
             let topHeight = Math.floor(Math.random() * (canvas.height - gap - 120)) + 60;
@@ -167,8 +393,10 @@
         let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         bgGradient.addColorStop(0, `hsl(${(currentHue + 180) % 360}, 45%, 5%)`);
         bgGradient.addColorStop(1, `hsl(${currentHue}, 35%, 10%)`);
+        
         ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, 400, 550);
         stars.forEach(star => { ctx.fillStyle = "#fff"; ctx.globalAlpha = star.speedMultiplier * 2; ctx.fillRect(star.x, star.y, star.size, star.size); });
+        
         ctx.globalAlpha = 1.0; 
         particles.forEach(p => { ctx.fillStyle = getNeonColor(score, 140); ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
         
@@ -178,23 +406,29 @@
             let pipeGrad = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipeWidth, 0);
             pipeGrad.addColorStop(0, pipeColor); pipeGrad.addColorStop(0.5, coreColor); pipeGrad.addColorStop(1, pipeColor);
             ctx.fillStyle = pipeGrad;
+            
             ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top); ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.top);
             ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom); ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
+            
             ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
             for(let y = 20; y < pipe.top; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
             for(let y = canvas.height - pipe.bottom + 20; y < canvas.height; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
+            
             ctx.shadowBlur = 0;
         });
 
         const ufoColor = getNeonColor(score, 140);
         ctx.shadowBlur = 15; ctx.shadowColor = ufoColor;
+        
         ctx.fillStyle = "rgba(180, 255, 255, 0.85)"; ctx.beginPath(); ctx.arc(birdX, birdY - 2, 9, Math.PI, 0); ctx.fill();
         ctx.fillStyle = ufoColor; ctx.beginPath(); ctx.ellipse(birdX, birdY + 3, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = (Math.floor(performance.now() / 150) % 2 === 0) ? "#ffffff" : "#ff00ff";
+        
         ctx.beginPath(); ctx.arc(birdX - 10, birdY + 3, 2, 0, Math.PI * 2); ctx.arc(birdX, birdY + 5, 2, 0, Math.PI * 2); ctx.arc(birdX + 10, birdY + 3, 2, 0, Math.PI * 2); ctx.fill();
+        
         ctx.shadowBlur = 0;
         
-        if (gameState === "PLAYING") {
+        if (gameState === "PLAYING" || gameState === "PAUSED" || gameState === "RESUMING") {
             if (scoreScale > 1) scoreScale -= 0.05;
             ctx.fillStyle = "#ffffff"; ctx.font = `bold ${20 * scoreScale}px 'Courier New', monospace`; ctx.textAlign = "center";
             ctx.fillText(`SCORE: ${score}`, canvas.width / 2, 40);
@@ -202,8 +436,17 @@
     }
     
     let lastTime = performance.now();
-    function gameLoop(currentTime) { let dt = (currentTime - lastTime) / 1000; if (dt > 0.1) dt = 0.1; lastTime = currentTime; update(dt); draw(); requestAnimationFrame(gameLoop); }
-    initStars(); requestAnimationFrame(gameLoop);
+    function gameLoop(currentTime) { 
+        let dt = (currentTime - lastTime) / 1000; 
+        if (dt > 0.1) dt = 0.1; 
+        lastTime = currentTime; 
+        update(dt); 
+        draw(); 
+        requestAnimationFrame(gameLoop); 
+    }
+    
+    initStars(); 
+    requestAnimationFrame(gameLoop);
     initGame();
 </script>
 </body>
