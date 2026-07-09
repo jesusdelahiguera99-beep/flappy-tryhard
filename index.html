@@ -1,122 +1,184 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b0b16">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
     <title>UFO GLOW</title>
     <style>
-        body { margin: 0; background-color: #0b0b16; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: white; overflow: hidden; touch-action: manipulation; }
-        canvas { border: 4px solid #ffffff; box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); background-color: #000; }
-        
-        /* Paneles UI con estilo Cyberpunk/Glassmorphism mejorado */
-        .ui-panel { position: absolute; text-align: center; background: rgba(10, 10, 25, 0.94); padding: 30px; border: 2px solid #0ff; border-radius: 15px; display: none; box-shadow: 0 0 25px rgba(0, 255, 255, 0.25); width: 280px; z-index: 10; backdrop-filter: blur(4px); }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: #0b0b16;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            touch-action: none;
+            /* Respeta el "notch" de móviles con pantalla recortada */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
+        }
+
+        /* Contenedor que mantiene la proporción del juego (400x550) en cualquier pantalla */
+        #gameWrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            border: 4px solid #0ff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            background-color: #000;
+            touch-action: none;
+            /* El tamaño real en pantalla lo controla JS (resizeCanvas) manteniendo la proporción */
+        }
+
+        /* Paneles UI centrados de forma fiable en cualquier tamaño de pantalla - ESTILO CYBERPUNK */
+        .ui-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: linear-gradient(180deg, rgba(15, 15, 30, 0.95) 0%, rgba(5, 5, 10, 0.98) 100%);
+            padding: 30px;
+            border: 2px solid #0ff;
+            border-radius: 0; /* Sin bordes redondeados */
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); /* Esquinas cortadas */
+            display: none;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            width: 280px;
+            max-width: 88vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            box-sizing: border-box;
+        }
         .reward-panel { border-color: #ff0; box-shadow: 0 0 35px rgba(255, 255, 0, 0.35); z-index: 50; }
-        
-        /* Animación de pulso neón para el título */
+
         @keyframes neonGlow {
             0% { text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; transform: scale(1); }
             100% { text-shadow: 0 0 20px #0ff, 0 0 35px #0ff, 0 0 50px #0ff; transform: scale(1.02); }
         }
-        .main-title { color: #0ff; margin-bottom: 0; animation: neonGlow 1.5s ease-in-out infinite alternate; font-size: 32px; letter-spacing: 2px; }
-        
-        /* Botones mucho más visuales e interactivos */
-        button { 
-            background: linear-gradient(135deg, #0ff 0%, #00bcbc 100%); 
-            border: 1px solid #fff; 
-            padding: 15px 30px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            border-radius: 8px; 
-            font-size: 18px; 
-            margin-top: 15px; 
-            color: black; 
-            font-family: 'Courier New', monospace; 
-            width: 100%; 
+        .main-title { color: #0ff; margin-bottom: 0; animation: neonGlow 1.5s ease-in-out infinite alternate; font-size: 32px; letter-spacing: 4px; text-transform: uppercase; }
+
+        /* Botones estilo Cyberpunk */
+        button {
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #0ff;
+            padding: 15px 30px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 0;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            font-size: 18px;
+            margin-top: 15px;
+            color: #0ff;
+            text-shadow: 0 0 8px #0ff;
+            font-family: 'Courier New', monospace;
+            width: 100%;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 10px rgba(0, 255, 255, 0.3);
+            touch-action: manipulation;
         }
-        button:hover { 
-            transform: translateY(-3px) scale(1.02); 
-            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.7);
-            background: linear-gradient(135deg, #26ffff 0%, #00d9d9 100%);
+        button:hover {
+            transform: translateY(-2px) scale(1.02);
+            background: #0ff;
+            color: #000;
+            text-shadow: none;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
         }
         button:active { transform: translateY(1px) scale(0.98); }
 
-        /* Estilo para el botón de pausa */
-        #pauseBtn {
-            position: absolute; top: 15px; right: 15px; width: 45px; height: 45px;
-            padding: 0; margin-top: 0; font-size: 16px; border-radius: 50%;
-            z-index: 30; display: none;
-        }
-        
-        .slider-group { margin: 20px 0; font-size: 14px; text-align: left; color: #0ff; }
-        input[type=range] { width: 100%; cursor: pointer; }
-        
+        .slider-group { margin: 20px 0; font-size: 14px; text-align: left; color: #0ff; text-transform: uppercase; }
+        input[type=range] { width: 100%; cursor: pointer; touch-action: manipulation; accent-color: #0ff; }
+
         #loadingScreen { display: flex; z-index: 100; align-items: center; justify-content: center; }
         .stats-list p { margin: 12px 0; font-size: 16px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="loadingScreen" class="ui-panel" style="display: flex;">
-    <h1 style="color: #0ff;">CARGANDO...</h1>
-</div>
-
-<canvas id="gameCanvas" width="400" height="550"></canvas>
-
-<button id="pauseBtn" onclick="togglePause()">||</button>
-
-<div id="mainMenu" class="ui-panel">
-    <h1 class="main-title">UFO GLOW</h1>
-    <button onclick="startGame()">JUGAR AHORA</button>
-    <button onclick="showStats()" style="background: linear-gradient(135deg, #b026ff 0%, #7c00c7 100%); color: white; box-shadow: 0 4px 10px rgba(176, 38, 255, 0.3);">ESTADÍSTICAS</button>
-    <button onclick="showSettings()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">AJUSTES</button>
-</div>
-
-<div id="settingsMenu" class="ui-panel">
-    <h1 style="color: #0ff; margin-bottom: 5px;">AJUSTES</h1>
-    <div class="slider-group">MÚSICA <input type="range" id="volMusic" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
-    <div class="slider-group">EFECTOS <input type="range" id="volSfx" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
-    <button onclick="hideSettings()">VOLVER</button>
-</div>
-
-<div id="statsMenu" class="ui-panel">
-    <h1 style="color: #a200ff; margin-bottom: 15px; text-shadow: 0 0 10px #a200ff;">ESTADÍSTICAS</h1>
-    <div class="stats-list" style="text-align: left;">
-        <p style="color: #0ff;">🏆 Récord: <span id="statRecord">0</span></p>
-        <p style="color: #0f0;">🎮 Partidas: <span id="statGames">0</span></p>
-        <p style="color: #f90;">🔥 Racha: <span id="statStreak">0</span> días</p>
+<div id="gameWrapper">
+    <div id="loadingScreen" class="ui-panel" style="display: flex; flex-direction: column;">
+        <h1 style="color: #0ff; text-shadow: 0 0 15px #0ff;">CARGANDO...</h1>
     </div>
-    <button onclick="hideStats()" style="background: linear-gradient(135deg, #b026ff 0%, #7c00c7 100%); color: white;">VOLVER</button>
-</div>
 
-<div id="rewardPopup" class="ui-panel reward-panel">
-    <h2 style="color: #ff0; margin-top: 0; text-shadow: 0 0 10px #ff0;">¡RECOMPENSA DIARIA!</h2>
-    <p id="rewardText" style="font-size: 18px; margin: 20px 0; font-weight: bold;"></p>
-    <button onclick="closeReward()" style="background: linear-gradient(135deg, #ff0 0%, #cca300 100%); color: black; box-shadow: 0 4px 10px rgba(255,255,0,0.4);">RECLAMAR</button>
-</div>
+    <canvas id="gameCanvas"></canvas>
 
-<div id="pauseMenu" class="ui-panel">
-    <h1 style="color: #0ff; text-shadow: 0 0 10px #0ff;">PAUSADO</h1>
-    <button onclick="togglePause()">REANUDAR</button>
-    <button onclick="showMenu()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white;">SALIR AL MENÚ</button>
-</div>
+    <div id="mainMenu" class="ui-panel">
+        <h1 class="main-title">UFO GLOW</h1>
+        <button onclick="startGame()">JUGAR AHORA</button>
+        <button onclick="showStats()" style="border-color: #b026ff; color: #b026ff; text-shadow: 0 0 8px #b026ff;">ESTADÍSTICAS</button>
+        <button onclick="showSettings()" style="border-color: #aaa; color: #aaa; text-shadow: 0 0 8px #aaa;">AJUSTES</button>
+    </div>
 
-<div id="countdownScreen" class="ui-panel" style="background: transparent; border: none; box-shadow: none; pointer-events: none; z-index: 60;">
-    <h1 id="countdownText" style="color: #ff0; font-size: 100px; text-shadow: 0 0 30px #ff0; margin: 0;">3</h1>
-</div>
+    <div id="settingsMenu" class="ui-panel">
+        <h1 style="color: #0ff; margin-bottom: 5px; text-shadow: 0 0 10px #0ff;">AJUSTES</h1>
+        <div class="slider-group">MÚSICA <input type="range" id="volMusic" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
+        <div class="slider-group">EFECTOS <input type="range" id="volSfx" min="0" max="1" step="0.1" value="0.2" oninput="updateVolumes()"></div>
+        <button onclick="hideSettings()">VOLVER</button>
+    </div>
 
-<div id="gameOverMenu" class="ui-panel">
-    <h1 style="color: #f0f; margin-bottom: 5px;">RESTART</h1>
-    <p id="finalScore" style="font-size: 20px; margin: 10px 0;"></p>
-    <button onclick="startGame()">VOLAR DE NUEVO</button>
-    <button onclick="showMenu()" style="background: linear-gradient(135deg, #555 0%, #333 100%); color: white;">MENÚ PRINCIPAL</button>
+    <div id="statsMenu" class="ui-panel">
+        <h1 style="color: #b026ff; margin-bottom: 15px; text-shadow: 0 0 10px #b026ff;">ESTADÍSTICAS</h1>
+        <div class="stats-list" style="text-align: left;">
+            <p style="color: #0ff;">🏆 Récord: <span id="statRecord">0</span></p>
+            <p style="color: #0f0;">🎮 Partidas: <span id="statGames">0</span></p>
+            <p style="color: #f90;">🔥 Racha: <span id="statStreak">0</span> días</p>
+        </div>
+        <button onclick="hideStats()" style="border-color: #b026ff; color: #b026ff; text-shadow: 0 0 8px #b026ff;">VOLVER</button>
+    </div>
+
+    <div id="rewardPopup" class="ui-panel reward-panel">
+        <h2 style="color: #ff0; margin-top: 0; text-shadow: 0 0 10px #ff0;">¡RECOMPENSA!</h2>
+        <p id="rewardText" style="font-size: 18px; margin: 20px 0; font-weight: bold; color: white;"></p>
+        <button onclick="closeReward()" style="border-color: #ff0; color: #ff0; text-shadow: 0 0 8px #ff0;">RECLAMAR</button>
+    </div>
+
+    <div id="gameOverMenu" class="ui-panel">
+        <h1 style="color: #f0f; margin-bottom: 5px; text-shadow: 0 0 15px #f0f;">CRASHED</h1>
+        <p id="finalScore" style="font-size: 20px; margin: 10px 0; font-weight: bold;"></p>
+        <button onclick="startGame()">REINTENTAR</button>
+        <button onclick="showMenu()" style="border-color: #aaa; color: #aaa; text-shadow: 0 0 8px #aaa;">MENÚ PRINCIPAL</button>
+    </div>
 </div>
 
 <script>
+    // ---------------------------------------------------------------
+    // Resolución lógica del juego (coordenadas con las que trabaja toda
+    // la lógica). El tamaño REAL en pantalla lo gestiona resizeCanvas().
+    // ---------------------------------------------------------------
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 550;
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let jumpBuffer = null;
-    
+
     const menuMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3");
     const gameMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
     menuMusic.loop = true;
@@ -126,19 +188,16 @@
     let streak = parseInt(localStorage.getItem('ufoGlowStreak')) || 0;
     let highScore = parseInt(localStorage.getItem('ufoGlowHighScore')) || 0;
 
-    let countdownValue = 3;
-    let countdownInterval;
-
     async function initGame() {
         try {
             const response = await fetch("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
             const arrayBuffer = await response.arrayBuffer();
             jumpBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         } catch(e) {}
-        
+
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainMenu').style.display = 'block';
-        
+
         updateUI();
         checkDailyReward();
         menuMusic.play().catch(()=>{});
@@ -155,15 +214,15 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
+
         osc.type = 'square';
         osc.frequency.setValueAtTime(300, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.05);
-        
+
         let sfxVol = parseFloat(document.getElementById('volSfx').value);
-        gainNode.gain.setValueAtTime(sfxVol * 0.5, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(sfxVol * 0.5, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        
+
         osc.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         osc.start();
@@ -174,21 +233,21 @@
         let todayDate = new Date();
         let todayStr = todayDate.toDateString();
         let lastLoginStr = localStorage.getItem('ufoGlowLastLogin');
-        
+
         if (lastLoginStr !== todayStr) {
             let yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-            
-            if (lastLoginStr === yesterdayDate.toDateString()) { streak++; } 
+
+            if (lastLoginStr === yesterdayDate.toDateString()) { streak++; }
             else { streak = 1; }
-            
+
             localStorage.setItem('ufoGlowStreak', streak);
             localStorage.setItem('ufoGlowLastLogin', todayStr);
-            
+
             document.getElementById('rewardText').innerHTML = `¡Día ${streak} de racha!`;
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('rewardPopup').style.display = 'block';
-            
+
             updateUI();
         }
     }
@@ -235,110 +294,113 @@
 
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    
+
+    // -----------------------------------------------------------------
+    // ESCALADO RESPONSIVE DEL CANVAS
+    // -----------------------------------------------------------------
+    function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const availableWidth = window.innerWidth - 16;
+        const availableHeight = window.innerHeight - 16;
+
+        const aspect = GAME_WIDTH / GAME_HEIGHT;
+        let cssWidth = availableWidth;
+        let cssHeight = cssWidth / aspect;
+
+        if (cssHeight > availableHeight) {
+            cssHeight = availableHeight;
+            cssWidth = cssHeight * aspect;
+        }
+
+        canvas.style.width = cssWidth + "px";
+        canvas.style.height = cssHeight + "px";
+
+        canvas.width = Math.round(GAME_WIDTH * dpr);
+        canvas.height = Math.round(GAME_HEIGHT * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 100));
+    resizeCanvas();
+
     let gameState = "MENU", birdY = 250, birdVelocity = 0, score = 0, scoreScale = 1;
-    const gravity = 1500, jump = -400, birdX = 60, birdRadius = 14; 
+    const gravity = 1500, jump = -400, birdX = 60, birdRadius = 14;
     let pipes = [], stars = [], particles = [];
     const pipeWidth = 65;
 
     function getPipeGap() { return score < 30 ? 160 : score < 40 ? 185 : score < 50 ? 200 : 215; }
-    
+
     function showSettings() { playUIClick(); document.getElementById('mainMenu').style.display = "none"; document.getElementById('settingsMenu').style.display = "block"; }
     function hideSettings() { playUIClick(); document.getElementById('settingsMenu').style.display = "none"; document.getElementById('mainMenu').style.display = "block"; }
-    
+
     function showStats() { playUIClick(); document.getElementById('mainMenu').style.display = "none"; document.getElementById('statsMenu').style.display = "block"; }
     function hideStats() { playUIClick(); document.getElementById('statsMenu').style.display = "none"; document.getElementById('mainMenu').style.display = "block"; }
-    
-    function showMenu() { 
+
+    function showMenu() {
         playUIClick();
-        clearInterval(countdownInterval);
-        document.getElementById('countdownScreen').style.display = 'none';
-        
-        document.getElementById('gameOverMenu').style.display = "none"; 
-        document.getElementById('pauseMenu').style.display = "none";
-        document.getElementById('pauseBtn').style.display = "none";
-        document.getElementById('mainMenu').style.display = "block"; 
-        gameState = "MENU"; 
-        
+        document.getElementById('gameOverMenu').style.display = "none";
+        document.getElementById('mainMenu').style.display = "block";
+        gameState = "MENU";
+
         gameMusic.pause();
         gameMusic.currentTime = 0;
         menuMusic.play().catch(()=>{});
-        
-        updateUI(); 
-    }
 
-    function startCountdown() {
-        gameState = "RESUMING"; 
-        countdownValue = 3;
-        document.getElementById('countdownText').innerText = countdownValue;
-        document.getElementById('countdownScreen').style.display = 'flex';
-        
-        countdownInterval = setInterval(() => {
-            countdownValue--;
-            if (countdownValue > 0) {
-                document.getElementById('countdownText').innerText = countdownValue;
-            } else {
-                clearInterval(countdownInterval);
-                document.getElementById('countdownScreen').style.display = 'none';
-                gameState = "PLAYING";
-                gameMusic.play().catch(()=>{});
-            }
-        }, 1000);
-    }
-
-    function togglePause() {
-        if (gameState !== "PLAYING" && gameState !== "PAUSED") return;
-        playUIClick();
-        if (gameState === "PLAYING") {
-            gameState = "PAUSED";
-            document.getElementById('pauseMenu').style.display = "block";
-            gameMusic.pause();
-        } else {
-            document.getElementById('pauseMenu').style.display = "none";
-            startCountdown();
-        }
+        updateUI();
     }
 
     function initStars() {
         stars = [];
-        for (let i = 0; i < 40; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 + 0.5, speedMultiplier: Math.random() * 0.4 + 0.1 });
+        for (let i = 0; i < 40; i++) stars.push({ x: Math.random() * GAME_WIDTH, y: Math.random() * GAME_HEIGHT, size: Math.random() * 2 + 0.5, speedMultiplier: Math.random() * 0.4 + 0.1 });
     }
 
     function createParticle() {
         if (gameState !== "PLAYING") return;
-        particles.push({ x: birdX - 10, y: birdY + 3 + (Math.random() * 6 - 3), vx: -(Math.random() * 80 + 40), vy: Math.random() * 40 - 20, alpha: 1, size: Math.random() * 3 + 1 });
+        // Se añade la propiedad "color" para distinguir las partículas de rastro (neón)
+        particles.push({ x: birdX - 10, y: birdY + 3 + (Math.random() * 6 - 3), vx: -(Math.random() * 80 + 40), vy: Math.random() * 40 - 20, alpha: 1, size: Math.random() * 3 + 1, color: getNeonColor(score, 140) });
     }
 
     function startGame() {
         playUIClick();
-        clearInterval(countdownInterval);
-        document.getElementById('countdownScreen').style.display = 'none';
-        
+
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
+
         menuMusic.pause();
         menuMusic.currentTime = 0;
         gameMusic.play().catch(()=>{});
-        
+
         document.querySelectorAll('.ui-panel').forEach(panel => panel.style.display = 'none');
-        document.getElementById('pauseBtn').style.display = 'block';
-        
+
         birdY = 250; birdVelocity = 0; score = 0; particles = []; initStars();
-        pipes = [{ x: canvas.width + 50, top: 150, bottom: canvas.height - 150 - getPipeGap(), passed: false }];
+        pipes = [{ x: GAME_WIDTH + 50, top: 150, bottom: GAME_HEIGHT - 150 - getPipeGap(), passed: false }];
         gameState = "PLAYING";
     }
 
     function endGame() {
+        if (gameState === "GAMEOVER") return; // Evita que se dispare múltiples veces al chocar
         gameState = "GAMEOVER";
         gamesPlayed++;
         localStorage.setItem('ufoGlowGamesPlayed', gamesPlayed);
-        document.getElementById('pauseBtn').style.display = 'none';
-        
-        if (score > highScore) { 
-            highScore = score; 
-            localStorage.setItem('ufoGlowHighScore', highScore); 
+
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('ufoGlowHighScore', highScore);
         }
-        
+
+        // Lógica de explosión: Dispara 40 partículas en todas direcciones
+        for(let i=0; i<40; i++) {
+            particles.push({
+                x: birdX, y: birdY,
+                vx: (Math.random() - 0.5) * 500,
+                vy: (Math.random() - 0.5) * 500,
+                alpha: 1, 
+                size: Math.random() * 4 + 2,
+                color: (Math.random() > 0.5) ? '#ff00ff' : '#00ffff' // Explosión Cyberpunk
+            });
+        }
+
         document.getElementById('finalScore').innerText = `SCORE: ${score} | BEST: ${highScore}`;
         document.getElementById('gameOverMenu').style.display = "block";
         updateUI();
@@ -349,13 +411,17 @@
         if (gameState === "PLAYING") { birdVelocity = jump; for(let i=0; i<5; i++) createParticle(); playJumpSound(); }
     }
 
-    window.addEventListener("keydown", (e) => { 
-        if (e.code === "Space") playerJump(e); 
-        if (e.code === "KeyP" || e.code === "Escape") togglePause();
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "Space") playerJump(e);
     });
     canvas.addEventListener("touchstart", (e) => { playerJump(e); }, { passive: false });
 
-    function getGameSpeed() {        
+    // Evita el scroll/rebote de la página al arrastrar el dedo sobre el juego
+    document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
+    document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+
+    function getGameSpeed() {
         let speed = score < 10 ? 180 : score < 20 ? 220 : score < 30 ? 260 : 180 + 120 + (Math.floor((score - 30) / 10) * 20);
         return Math.min(speed, 320);
     }
@@ -364,90 +430,102 @@
 
     function update(dt) {
         let currentSpeed = getGameSpeed();
-        stars.forEach(star => { star.x -= currentSpeed * star.speedMultiplier * dt; if (star.x < 0) { star.x = canvas.width; star.y = Math.random() * canvas.height; } });
-        
+        stars.forEach(star => { star.x -= currentSpeed * star.speedMultiplier * dt; if (star.x < 0) { star.x = GAME_WIDTH; star.y = Math.random() * GAME_HEIGHT; } });
+
+        // HE MOVIDO ESTO AQUÍ: Las partículas se siguen moviendo aunque mueras (para ver la explosión)
+        for (let i = particles.length - 1; i >= 0; i--) { 
+            let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 1.5 * dt; 
+            if (p.alpha <= 0) particles.splice(i, 1); 
+        }
+
         if (gameState !== "PLAYING") return;
-        
+
         birdVelocity += gravity * dt; birdY += birdVelocity * dt;
-        if (birdY + birdRadius > canvas.height || birdY - birdRadius < 0) endGame();
+        if (birdY + birdRadius > GAME_HEIGHT || birdY - birdRadius < 0) endGame();
         if (Math.random() < 0.4) createParticle();
-        
-        for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 1.5 * dt; if (p.alpha <= 0) particles.splice(i, 1); }
-        
+
         for (let i = pipes.length - 1; i >= 0; i--) {
             let pipe = pipes[i]; pipe.x -= currentSpeed * dt;
             if (!pipe.passed && pipe.x + pipeWidth < birdX) { score++; pipe.passed = true; scoreScale = 1.6; }
-            if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth && (birdY - birdRadius < pipe.top || birdY + birdRadius > canvas.height - pipe.bottom)) endGame();
+            if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth && (birdY - birdRadius < pipe.top || birdY + birdRadius > GAME_HEIGHT - pipe.bottom)) endGame();
             if (pipe.x + pipeWidth < 0) pipes.splice(i, 1);
         }
-        
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < GAME_WIDTH - 200) {
             let gap = getPipeGap();
-            let topHeight = Math.floor(Math.random() * (canvas.height - gap - 120)) + 60;
-            pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - gap, passed: false });
+            let topHeight = Math.floor(Math.random() * (GAME_HEIGHT - gap - 120)) + 60;
+            pipes.push({ x: GAME_WIDTH, top: topHeight, bottom: GAME_HEIGHT - topHeight - gap, passed: false });
         }
     }
 
     function draw() {
         const currentHue = (score * 7) % 360;
-        let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        let bgGradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
         bgGradient.addColorStop(0, `hsl(${(currentHue + 180) % 360}, 45%, 5%)`);
         bgGradient.addColorStop(1, `hsl(${currentHue}, 35%, 10%)`);
-        
-        ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, 400, 550);
+
+        ctx.fillStyle = bgGradient; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         stars.forEach(star => { ctx.fillStyle = "#fff"; ctx.globalAlpha = star.speedMultiplier * 2; ctx.fillRect(star.x, star.y, star.size, star.size); });
-        
-        ctx.globalAlpha = 1.0; 
-        particles.forEach(p => { ctx.fillStyle = getNeonColor(score, 140); ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
-        
+
+        ctx.globalAlpha = 1.0;
+        // Actualizado para respetar el color de cada partícula (neón vs explosión)
+        particles.forEach(p => { 
+            ctx.fillStyle = p.color || getNeonColor(score, 140); 
+            ctx.globalAlpha = Math.max(0, p.alpha); 
+            ctx.fillRect(p.x, p.y, p.size, p.size); 
+        });
+        ctx.globalAlpha = 1.0;
+
         pipes.forEach(pipe => {
             const pipeColor = getNeonColor(score, 0); const coreColor = `hsl(${(score * 12) % 360}, 100%, 95%)`;
             ctx.lineWidth = 3; ctx.shadowBlur = 12; ctx.shadowColor = pipeColor;
             let pipeGrad = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipeWidth, 0);
             pipeGrad.addColorStop(0, pipeColor); pipeGrad.addColorStop(0.5, coreColor); pipeGrad.addColorStop(1, pipeColor);
             ctx.fillStyle = pipeGrad;
-            
+
             ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top); ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.top);
-            ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom); ctx.strokeRect(pipe.x, canvas.height - pipe.bottom, pipeWidth, pipe.bottom);
-            
+            ctx.fillRect(pipe.x, GAME_HEIGHT - pipe.bottom, pipeWidth, pipe.bottom); ctx.strokeRect(pipe.x, GAME_HEIGHT - pipe.bottom, pipeWidth, pipe.bottom);
+
             ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
             for(let y = 20; y < pipe.top; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
-            for(let y = canvas.height - pipe.bottom + 20; y < canvas.height; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
-            
+            for(let y = GAME_HEIGHT - pipe.bottom + 20; y < GAME_HEIGHT; y += 30) { ctx.beginPath(); ctx.moveTo(pipe.x + 5, y); ctx.lineTo(pipe.x + pipeWidth - 5, y); ctx.stroke(); }
+
             ctx.shadowBlur = 0;
         });
 
-        const ufoColor = getNeonColor(score, 140);
-        ctx.shadowBlur = 15; ctx.shadowColor = ufoColor;
-        
-        ctx.fillStyle = "rgba(180, 255, 255, 0.85)"; ctx.beginPath(); ctx.arc(birdX, birdY - 2, 9, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = ufoColor; ctx.beginPath(); ctx.ellipse(birdX, birdY + 3, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = (Math.floor(performance.now() / 150) % 2 === 0) ? "#ffffff" : "#ff00ff";
-        
-        ctx.beginPath(); ctx.arc(birdX - 10, birdY + 3, 2, 0, Math.PI * 2); ctx.arc(birdX, birdY + 5, 2, 0, Math.PI * 2); ctx.arc(birdX + 10, birdY + 3, 2, 0, Math.PI * 2); ctx.fill();
-        
-        ctx.shadowBlur = 0;
-        
-        if (gameState === "PLAYING" || gameState === "PAUSED" || gameState === "RESUMING") {
+        // Solo dibujar el ovni si NO estamos en la pantalla de GameOver (porque explotó)
+        if (gameState !== "GAMEOVER") {
+            const ufoColor = getNeonColor(score, 140);
+            ctx.shadowBlur = 15; ctx.shadowColor = ufoColor;
+
+            ctx.fillStyle = "rgba(180, 255, 255, 0.85)"; ctx.beginPath(); ctx.arc(birdX, birdY - 2, 9, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = ufoColor; ctx.beginPath(); ctx.ellipse(birdX, birdY + 3, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = (Math.floor(performance.now() / 150) % 2 === 0) ? "#ffffff" : "#ff00ff";
+
+            ctx.beginPath(); ctx.arc(birdX - 10, birdY + 3, 2, 0, Math.PI * 2); ctx.arc(birdX, birdY + 5, 2, 0, Math.PI * 2); ctx.arc(birdX + 10, birdY + 3, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        if (gameState === "PLAYING") {
             if (scoreScale > 1) scoreScale -= 0.05;
             ctx.fillStyle = "#ffffff"; ctx.font = `bold ${20 * scoreScale}px 'Courier New', monospace`; ctx.textAlign = "center";
-            ctx.fillText(`SCORE: ${score}`, canvas.width / 2, 40);
+            ctx.fillText(`SCORE: ${score}`, GAME_WIDTH / 2, 40);
         }
     }
-    
+
     let lastTime = performance.now();
-    function gameLoop(currentTime) { 
-        let dt = (currentTime - lastTime) / 1000; 
-        if (dt > 0.1) dt = 0.1; 
-        lastTime = currentTime; 
-        update(dt); 
-        draw(); 
-        requestAnimationFrame(gameLoop); 
+    function gameLoop(currentTime) {
+        let dt = (currentTime - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1;
+        lastTime = currentTime;
+        update(dt);
+        draw();
+        requestAnimationFrame(gameLoop);
     }
-    
-    initStars(); 
+
+    initStars();
     requestAnimationFrame(gameLoop);
     initGame();
 </script>
 </body>
-</html>   
+</html>  
